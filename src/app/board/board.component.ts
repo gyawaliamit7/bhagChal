@@ -22,6 +22,7 @@ export class BoardComponent implements OnInit, OnChanges {
   finalTurn = false;
   invalidMove = false;
   selectedTiger: Path;
+  counter: number;
 
   @HostListener('click', ['$event'])
   onClick(event) {
@@ -30,6 +31,7 @@ export class BoardComponent implements OnInit, OnChanges {
     this.makeBoard();
     this.findMoves();
     this.displayTurn();
+    this.displayStat();
     this.moveTiger();
     if (this.invalidMove) {
       this.invalidMove = false;
@@ -62,6 +64,7 @@ export class BoardComponent implements OnInit, OnChanges {
          this.path.push(temp);
       }
     }
+    this.counter = 20;
   }
 
   setLines() {
@@ -151,6 +154,14 @@ export class BoardComponent implements OnInit, OnChanges {
 
   }
 
+  displayStat() {
+    this.ctx.fillStyle = '#000000';
+    this.ctx.fillRect(400, 20, 200, 50);
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.fillText(' Deer Left: ' + this.counter, 400 , 50);
+
+  }
+
   addDeer() {
     for (let i = 0; i < 20 ; ++i) {
       this.deer.push('O');
@@ -160,28 +171,20 @@ export class BoardComponent implements OnInit, OnChanges {
 
   fillTiger() {
     this.path.forEach(e => {
-      // this.ctx.font = '30px Arial';
-      // this.ctx.fillStyle = '#ff0000';
       if (e.get_x() === 0 && e.get_y() === 0) {
-       // this.ctx.fillText('X', (e.get_x() + 1) * 100 , (e.get_y() + 1 ) * 100);
         e.set_tiger(true);
       }
       if (e.get_x() === 0 && e.get_y() === 4) {
-       // this.ctx.fillText('X', (e.get_x() + 1) * 100 , (e.get_y() + 1 ) * 100);
         e.set_tiger(true);
-
       }
       if (e.get_x() === 4 && e.get_y() === 0) {
-       // this.ctx.fillText('X', (e.get_x() + 1) * 100 , (e.get_y() + 1 ) * 100);
         e.set_tiger(true);
 
       }
       if (e.get_x() === 2 && e.get_y() === 2) {
-       // this.ctx.fillText('X', (e.get_x() + 1) * 100 , (e.get_y() + 1 ) * 100);
         e.set_tiger(true);
       }
       if (e.get_x() === 4 && e.get_y() === 4) {
-        // this.ctx.fillText('X', (e.get_x() + 1) * 100 , (e.get_y() + 1 ) * 100);
         e.set_tiger(true);
       }
     });
@@ -196,8 +199,7 @@ export class BoardComponent implements OnInit, OnChanges {
         this.ctx.font = '30px Arial';
         this.ctx.fillStyle = '#ff0000';
         this.ctx.fillText('X', (e.get_x() + 1) * 100 , (e.get_y() + 1 ) * 100);
-      }
-      else if (e.isDeer) {
+      } else if (e.isDeer) {
         this.ctx.font = '30px Arial';
         this.ctx.fillStyle = '#0000ff';
         this.ctx.fillText('O', (e.get_x() + 1) * 100 , (e.get_y() + 1 ) * 100);
@@ -209,6 +211,7 @@ export class BoardComponent implements OnInit, OnChanges {
     const temp = this.findPath();
     if (this.deerTurn && temp != null && !temp.isTiger && !temp.isDeer) {
       temp.set_deer(true);
+      --this.counter;
       this.ctx.font = '30px Arial';
       this.ctx.fillStyle = '#0000ff';
       this.ctx.fillText('O', (temp.get_x() + 1) * 100 , (temp.get_y() + 1 ) * 100);
@@ -281,8 +284,23 @@ export class BoardComponent implements OnInit, OnChanges {
           }
         }
       }
+    // if across
+    // if current point is accross
+      // const commonConnector = temp.get_connector().some(e => e.get_x() === prev.get_y() && e.get_y() === prev.get_y());
+      // const secondConnector = prev.get_connector().some(e => e.get_x() === temp.get_y() && e.get_y() === temp.get_y());
 
-    // what is in the middle if across
+      const mutualConnector = temp.get_connector().find( e => {
+        return prev.get_connector().find(f => f.get_x() === e.get_x() && f.get_y() === e.get_y());
+      });
+
+      const findPath = this.path.find(e=> e.get_x() === mutualConnector.get_x() && e.get_y() === mutualConnector.get_y());
+      console.log('Mutual connector is');
+      console.log(mutualConnector);
+      if (findPath.isDeer) {
+        findPath.set_deer(false);
+        return true;
+      }
+
 
     }
     return false;
