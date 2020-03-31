@@ -22,7 +22,10 @@ export class BoardComponent implements OnInit, OnChanges {
   finalTurn = false;
   invalidMove = false;
   selectedTiger: Path;
+  selectedDeer: Path;
   counter: number;
+  deerMove = false;
+  finalDeerTurn = false;
 
   @HostListener('click', ['$event'])
   onClick(event) {
@@ -35,6 +38,10 @@ export class BoardComponent implements OnInit, OnChanges {
     this.moveTiger();
     if (this.invalidMove) {
       this.invalidMove = false;
+    }
+    if (this.counter === 0) {
+      this.deerMove = true;
+
     }
 
   }
@@ -148,8 +155,15 @@ export class BoardComponent implements OnInit, OnChanges {
       this.ctx.fillStyle = '#000000';
       this.ctx.fillRect(100, 20, 200, 50);
       this.ctx.fillStyle = '#ffffff';
-      this.ctx.fillText('MOVE TIGER', 100 , 50);
+      this.ctx.fillText('INVALID MOVE', 100 , 50);
+    } else if (this.finalDeerTurn) {
+      this.ctx.fillStyle = '#000000';
+      this.ctx.fillRect(100, 20, 200, 50);
+      this.ctx.fillStyle = '#ffffff';
+      this.ctx.fillText('MOVE DEER', 100 , 50);
+
     }
+
   }
 
   }
@@ -181,9 +195,6 @@ export class BoardComponent implements OnInit, OnChanges {
         e.set_tiger(true);
 
       }
-      if (e.get_x() === 2 && e.get_y() === 2) {
-        e.set_tiger(true);
-      }
       if (e.get_x() === 4 && e.get_y() === 4) {
         e.set_tiger(true);
       }
@@ -210,13 +221,32 @@ export class BoardComponent implements OnInit, OnChanges {
   findMoves() {
     const temp = this.findPath();
     if (this.deerTurn && temp != null && !temp.isTiger && !temp.isDeer) {
-      temp.set_deer(true);
-      --this.counter;
-      this.ctx.font = '30px Arial';
-      this.ctx.fillStyle = '#0000ff';
-      this.ctx.fillText('O', (temp.get_x() + 1) * 100 , (temp.get_y() + 1 ) * 100);
+      if (this.counter > 0) {
+        --this.counter;
+        temp.set_deer(true);
+        this.ctx.font = '30px Arial';
+        this.ctx.fillStyle = '#0000ff';
+        this.ctx.fillText('O', (temp.get_x() + 1) * 100 , (temp.get_y() + 1 ) * 100);
+        this.deerTurn = !this.deerTurn;
+        this.tigerTurn = !this.tigerTurn;
+      }
+    }
+    if (this.deerTurn && temp != null && temp.isDeer && !temp.isTiger) {
+      this.selectedDeer = temp;
+      this.finalDeerTurn = !this.finalDeerTurn;
       this.deerTurn = !this.deerTurn;
-      this.tigerTurn = !this.tigerTurn;
+    }
+    if (this.finalDeerTurn && temp != null && !temp.isDeer && !temp.isTiger ) {
+      if (this.moveValidDeer(temp, this.selectedDeer)) {
+        console.log('Hami yeta');
+        temp.set_deer(true);
+        this.selectedDeer.set_deer(false);
+        this.tigerTurn = !this.tigerTurn;
+        this.finalDeerTurn = !this.finalDeerTurn;
+      } else {
+        this.invalidMove = true;
+      }
+
     }
     if (this.tigerTurn && temp != null && !temp.isDeer && temp.isTiger) {
       this.finalTurn = !this.finalTurn;
@@ -225,6 +255,8 @@ export class BoardComponent implements OnInit, OnChanges {
     }
     if (this.finalTurn && temp != null && !temp.isTiger && !temp.isDeer) {
       if (this.moveValid(temp, this.selectedTiger)) {
+        temp.set_tiger(true);
+        this.selectedTiger.set_tiger(false);
         this.deerTurn = !this.deerTurn;
         this.finalTurn = !this.finalTurn;
       } else if (this.deerEatable(temp, this.selectedTiger)) {
@@ -293,7 +325,7 @@ export class BoardComponent implements OnInit, OnChanges {
         return prev.get_connector().find(f => f.get_x() === e.get_x() && f.get_y() === e.get_y());
       });
 
-      const findPath = this.path.find(e=> e.get_x() === mutualConnector.get_x() && e.get_y() === mutualConnector.get_y());
+      const findPath = this.path.find(e => e.get_x() === mutualConnector.get_x() && e.get_y() === mutualConnector.get_y());
       console.log('Mutual connector is');
       console.log(mutualConnector);
       if (findPath.isDeer) {
@@ -330,14 +362,58 @@ export class BoardComponent implements OnInit, OnChanges {
       }
 
       // if current point is accross
-      const commonConnector = temp.get_connector().some(e => e.get_x() === prev.get_y() && e.get_y() === prev.get_y());
-      const secondConnector = prev.get_connector().some(e => e.get_x() === temp.get_y() && e.get_y() === temp.get_y());
+      const commonConnector = temp.get_connector().some(e => e.get_x() === prev.get_x() && e.get_y() === prev.get_y());
+      const secondConnector = prev.get_connector().some(e => e.get_x() === temp.get_x() && e.get_y() === temp.get_y());
       if (commonConnector || secondConnector) {
         // if ((Math.abs(temp.get_x() - prev.get_y()) === 1) && (Math.abs(temp.get_x() - prev.get_y()) === 1)) {
           console.log('Common connector is');
           console.log(commonConnector);
+          console.log('second connector is');
+          console.log(secondConnector);
           temp.set_tiger(true);
           prev.set_tiger(false);
+          return true;
+      //  }
+      }
+
+    }
+    return false;
+  }
+
+  moveValidDeer(temp: Path , prev: Path) {
+    // if the current point is empty
+    if (!temp.isTiger && !temp.isDeer) {
+      // if current point is horizontal
+      if (temp.get_y() === prev.get_y()) {
+        // if the prev and current point difference is 1
+        if (Math.abs(temp.get_x() - prev.get_x()) === 1) {
+          temp.set_deer(true);
+          prev.set_deer(false);
+          return true;
+        }
+
+      }
+      // if current point is vertical
+      if (temp.get_x() === prev.get_x()) {
+        // if the prev and  current point difference is 1
+        if (Math.abs(temp.get_y() - prev.get_y()) === 1) {
+          temp.set_deer(true);
+          prev.set_deer(false);
+          return true;
+        }
+      }
+
+      // if current point is accross
+      const commonConnector = temp.get_connector().some(e => e.get_x() === prev.get_x() && e.get_y() === prev.get_y());
+      const secondConnector = prev.get_connector().some(e => e.get_x() === temp.get_x() && e.get_y() === temp.get_y());
+      if (commonConnector || secondConnector) {
+        // if ((Math.abs(temp.get_x() - prev.get_y()) === 1) && (Math.abs(temp.get_x() - prev.get_y()) === 1)) {
+          console.log('Common connector is');
+          console.log(commonConnector);
+          console.log('second connector is');
+          console.log(secondConnector);
+          temp.set_deer(true);
+          prev.set_deer(false);
           return true;
       //  }
       }
